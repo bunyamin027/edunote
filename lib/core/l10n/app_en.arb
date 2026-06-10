@@ -1,0 +1,122 @@
+{
+  "@@locale": "en",
+  "appTitle": "EduNoteAI",
+  "@appTitle": { "description": "Application title" },
+
+  "homeTitle": "Home",
+  "@homeTitle": { "description": "Home tab title" },
+
+  "notebooksTitle": "Notebooks",
+  "@notebooksTitle": { "description": "Notebooks tab title" },
+
+  "aiAssistantTitle": "AI Assistant",
+  "@aiAssistantTitle": { "description": "AI tab title" },
+
+  "settingsTitle": "Settings",
+  "@settingsTitle": { "description": "Settings tab title" },
+
+  "createNotebook": "Create Notebook",
+  "@createNotebook": { "description": "Create notebook button" },
+
+  "notebookName": "Notebook Name",
+  "@notebookName": { "description": "Notebook name input label" },
+
+  "notebookNameHint": "e.g. Biology 101 Notes",
+  "@notebookNameHint": { "description": "Notebook name hint text" },
+
+  "selectCover": "Select Cover",
+  "@selectCover": { "description": "Cover selection section title" },
+
+  "selectTemplate": "Select Template",
+  "@selectTemplate": { "description": "Template selection section title" },
+
+  "templateBlank": "Blank",
+  "@templateBlank": { "description": "Blank paper template" },
+
+  "templateLined": "Lined",
+  "@templateLined": { "description": "Lined paper template" },
+
+  "templateGrid": "Grid",
+  "@templateGrid": { "description": "Grid/squared paper template" },
+
+  "templateDotted": "Dotted",
+  "@templateDotted": { "description": "Dotted paper template" },
+
+  "templateIsometric": "Isometric",
+  "@templateIsometric": { "description": "Isometric paper template" },
+
+  "create": "Create",
+  "@create": { "description": "Create action button" },
+
+  "cancel": "Cancel",
+  "@cancel": { "description": "Cancel action button" },
+
+  "delete": "Delete",
+  "@delete": { "description": "Delete action button" },
+
+  "rename": "Rename",
+  "@rename": { "description": "Rename action button" },
+
+  "search": "Search",
+  "@search": { "description": "Search placeholder" },
+
+  "searchNotebooks": "Search notebooks...",
+  "@searchNotebooks": { "description": "Search notebooks hint" },
+
+  "recentNotes": "Recent Notes",
+  "@recentNotes": { "description": "Recent notes section title" },
+
+  "allNotebooks": "All Notebooks",
+  "@allNotebooks": { "description": "All notebooks section title" },
+
+  "folders": "Folders",
+  "@folders": { "description": "Folders section title" },
+
+  "createFolder": "Create Folder",
+  "@createFolder": { "description": "Create folder button" },
+
+  "folderName": "Folder Name",
+  "@folderName": { "description": "Folder name input label" },
+
+  "noNotebooks": "No notebooks yet",
+  "@noNotebooks": { "description": "Empty state title" },
+
+  "noNotebooksSubtitle": "Tap + to create your first notebook",
+  "@noNotebooksSubtitle": { "description": "Empty state subtitle" },
+
+  "pen": "Pen",
+  "@pen": { "description": "Pen tool" },
+
+  "highlighter": "Highlighter",
+  "@highlighter": { "description": "Highlighter tool" },
+
+  "eraser": "Eraser",
+  "@eraser": { "description": "Eraser tool" },
+
+  "text": "Text",
+  "@text": { "description": "Text tool" },
+
+  "undo": "Undo",
+  "@undo": { "description": "Undo action" },
+
+  "redo": "Redo",
+  "@redo": { "description": "Redo action" },
+
+  "exportPdf": "Export as PDF",
+  "@exportPdf": { "description": "Export as PDF button" },
+
+  "share": "Share",
+  "@share": { "description": "Share button" },
+
+  "darkMode": "Dark Mode",
+  "@darkMode": { "description": "Dark mode setting" },
+
+  "language": "Language",
+  "@language": { "description": "Language setting" },
+
+  "turkish": "Türkçe",
+  "@turkish": { "description": "Turkish language option" },
+
+  "english": "English",
+  "@english": { "description": "English language option" }
+}

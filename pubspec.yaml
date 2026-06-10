@@ -1,0 +1,67 @@
+name: edunote
+description: "EduNoteAI: Akıllı Ders Notları & Yapay Zeka Asistanı"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # UI & Design
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+  flutter_svg: ^2.0.17
+  shimmer: ^3.0.0
+  flutter_animate: ^4.5.2
+
+  # State Management
+  flutter_bloc: ^9.1.0
+  equatable: ^2.0.7
+
+  # Navigation
+  go_router: ^15.1.2
+
+  # Local Storage
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.5
+
+  # Dependency Injection
+  get_it: ^8.0.3
+
+  # Localization
+  intl: ^0.20.2
+
+  # Utilities
+  uuid: ^4.5.1
+  collection: ^1.19.1
+
+  # File Management
+  file_picker: ^9.2.1
+  open_filex: ^4.6.0
+  share_plus: ^11.0.0
+  mime: ^2.0.0
+  image: ^4.5.3
+
+  # AI
+  google_generative_ai: ^0.4.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/templates/
+
+

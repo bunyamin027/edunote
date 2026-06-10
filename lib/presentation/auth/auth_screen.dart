@@ -145,6 +145,52 @@ class _AuthScreenState extends State<AuthScreen> {
                     : Text(_isSignUp ? 'Kayıt Ol' : 'Giriş Yap'),
               ),
               
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                children: [
+                  const Expanded(child: Divider()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    child: Text(
+                      'VEYA',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const Expanded(child: Divider()),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              
+              OutlinedButton.icon(
+                onPressed: _isLoading 
+                    ? null 
+                    : () async {
+                        setState(() => _isLoading = true);
+                        try {
+                          await _authService.signInWithGoogle();
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Google Girişi Başarısız: $e')),
+                            );
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(() => _isLoading = false);
+                          }
+                        }
+                      },
+                icon: const Icon(Icons.g_mobiledata_rounded, size: 32),
+                label: const Text('Google ile Devam Et'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  foregroundColor: theme.colorScheme.onSurface,
+                ),
+              ),
+              
               const SizedBox(height: AppSpacing.md),
               
               TextButton(

@@ -11,6 +11,8 @@ import '../../domain/repositories/folder_repository.dart';
 import '../../data/services/canvas_storage_service.dart';
 import '../../data/services/file_import_service.dart';
 import '../../data/services/ai_service.dart';
+import '../../data/services/auth_service.dart';
+import '../../data/services/sync_service.dart';
 
 /// Global service locator instance.
 final GetIt sl = GetIt.instance;
@@ -55,5 +57,11 @@ Future<void> initDependencies() async {
   );
   sl.registerLazySingleton<AiService>(
     () => AiService(),
+  );
+  sl.registerLazySingleton<AuthService>(
+    () => AuthService(),
+  );
+  sl.registerLazySingleton<SyncService>(
+    () => SyncService(sl<AuthService>()),
   );
 }

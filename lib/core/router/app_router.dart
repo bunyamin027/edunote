@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../presentation/auth/auth_screen.dart';
 import '../../presentation/home/home_screen.dart';
 import '../../presentation/notebook/notebooks_screen.dart';
 import '../../presentation/ai/ai_screen.dart';
@@ -12,6 +13,7 @@ import '../../presentation/files/files_screen.dart';
 class AppRoutes {
   AppRoutes._();
 
+  static const String auth = '/auth';
   static const String home = '/';
   static const String notebooks = '/notebooks';
   static const String ai = '/ai';
@@ -73,8 +75,12 @@ class _MainShell extends StatelessWidget {
 
 /// Application router configuration.
 final GoRouter appRouter = GoRouter(
-  initialLocation: AppRoutes.home,
+  initialLocation: AppRoutes.auth,
   routes: [
+    GoRoute(
+      path: AppRoutes.auth,
+      builder: (context, state) => const AuthScreen(),
+    ),
     // ─── Main Shell (Bottom Navigation) ─────────────
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>

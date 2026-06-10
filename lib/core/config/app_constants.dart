@@ -9,7 +9,7 @@ class AppConstants {
   // API Keys (TODO: Move to .env in production)
   static const String geminiApiKey = 'YOUR_GEMINI_API_KEY_HERE';
   static const String supabaseUrl = 'https://njogcscnnnvylfxyhojs.supabase.co';
-  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qb2djc2Nubm52eWxmeHlob2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNzIzMTMsImV4cCI6MjA5NjY0ODMxM30.3y3FNO1VENCQW-pyXPbYtfyh-LS_Ro_k4pUbs-ryRgA';
+  static const String supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY_HERE';
 
   // Hive Box Names
   static const String notebooksBox = 'notebooks';

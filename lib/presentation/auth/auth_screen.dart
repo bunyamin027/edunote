@@ -170,11 +170,26 @@ class _AuthScreenState extends State<AuthScreen> {
                     : () async {
                         setState(() => _isLoading = true);
                         try {
-                          await _authService.signInWithGoogle();
+                          final response = await _authService.signInWithGoogle();
+                          if (mounted && response.user != null) {
+                            context.go(AppRoutes.home);
+                          }
+                        } on AuthException catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(e.message),
+                                backgroundColor: AppColors.error,
+                              ),
+                            );
+                          }
                         } catch (e) {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Google Girişi Başarısız: $e')),
+                              SnackBar(
+                                content: Text('Google Girişi Başarısız: $e'),
+                                backgroundColor: AppColors.error,
+                              ),
                             );
                           }
                         } finally {

@@ -129,4 +129,143 @@ $text
       throw Exception('Flashcard\'lar oluşturulamadı. Metin çok kısa veya yetersiz olabilir.');
     }
   }
+
+  // ─── Document Analysis Methods ────────────────────────
+
+  /// Summarize a full document (extracted text from PDF/TXT).
+  Future<String> summarizeDocument(String extractedText) async {
+    try {
+      final prompt = '''
+Sen bir akademik asistansın. Aşağıdaki belge metnini kapsamlı bir şekilde özetle.
+
+Özetinde şunları yap:
+1. **Ana Konular:** Belgenin ana konularını ve temel fikirlerini belirle
+2. **Anahtar Kavramlar:** Önemli terim, tanım ve kavramları listele
+3. **Sonuç ve Çıkarımlar:** Belgenin genel sonuçlarını veya çıkarımlarını özetle
+
+Özeti Türkçe yaz. Madde işaretleri ve başlıklar kullanarak düzenli bir format oluştur.
+
+BELGE METNİ:
+$extractedText
+''';
+      final response = await _model.generateContent([Content.text(prompt)]);
+      return response.text ?? 'Özet oluşturulamadı.';
+    } catch (e) {
+      debugPrint('AI Document summarize error: $e');
+      throw Exception('Belge özeti oluşturulurken bir hata meydana geldi.');
+    }
+  }
+
+  /// Generate exam-style questions from document text.
+  Future<String> generateQuestions(String extractedText) async {
+    try {
+      final prompt = '''
+Sen bir üniversite profesörüsün. Aşağıdaki belge metninden öğrencileri değerlendirmek için sınav soruları oluştur.
+
+Şu formatlarda sorular üret:
+1. **Çoktan Seçmeli (5 soru):** Her birinde 4 seçenek (A, B, C, D) ve doğru cevap
+2. **Doğru-Yanlış (5 soru):** Her birinde açıklama
+3. **Klasik Sorular (3 soru):** Kısa cevaplı açık uçlu sorular ve beklenen cevaplar
+
+Tüm soruları ve cevaplarını Türkçe yaz. Her sorunun altında doğru cevabı da belirt.
+
+BELGE METNİ:
+$extractedText
+''';
+      final response = await _model.generateContent([Content.text(prompt)]);
+      return response.text ?? 'Sorular oluşturulamadı.';
+    } catch (e) {
+      debugPrint('AI Question generation error: $e');
+      throw Exception('Sınav soruları oluşturulurken bir hata meydana geldi.');
+    }
+  }
+
+  /// Analyze an image document (photo of notes, slide, etc.)
+  Future<String> analyzeDocumentImage(Uint8List imageBytes, String mimeType) async {
+    try {
+      final prompt = '''
+Bu görseli dikkatli bir şekilde incele. Bu bir ders notu, slayt, kitap sayfası veya çalışma materyali olabilir.
+
+Lütfen şunları yap:
+1. Görseldeki tüm metin ve bilgileri detaylıca oku
+2. İçeriği kapsamlı bir şekilde özetle
+3. Önemli kavram ve terimleri vurgula
+4. Varsa formül, tablo veya diyagramları açıkla
+
+Yanıtını Türkçe yaz.
+''';
+
+      final content = [
+        Content.multi([
+          TextPart(prompt),
+          DataPart(mimeType, imageBytes),
+        ])
+      ];
+
+      final response = await _model.generateContent(content);
+      return response.text ?? 'Görsel analiz edilemedi.';
+    } catch (e) {
+      debugPrint('AI Image analysis error: $e');
+      throw Exception('Görsel analiz edilirken bir hata oluştu.');
+    }
+  }
+
+  /// Generate exam questions from an image document.
+  Future<String> generateQuestionsFromImage(Uint8List imageBytes, String mimeType) async {
+    try {
+      final prompt = '''
+Bu görseldeki içeriği dikkatlice incele ve bu içerikten sınav soruları oluştur.
+
+Şu formatlarda sorular üret:
+1. **Çoktan Seçmeli (3 soru):** Her birinde 4 seçenek ve doğru cevap
+2. **Doğru-Yanlış (3 soru):** Her birinde açıklama
+3. **Klasik Sorular (2 soru):** Kısa cevaplı açık uçlu sorular
+
+Tüm soruları ve cevaplarını Türkçe yaz.
+''';
+
+      final content = [
+        Content.multi([
+          TextPart(prompt),
+          DataPart(mimeType, imageBytes),
+        ])
+      ];
+
+      final response = await _model.generateContent(content);
+      return response.text ?? 'Sorular oluşturulamadı.';
+    } catch (e) {
+      debugPrint('AI Image question generation error: $e');
+      throw Exception('Görselden soru üretilirken bir hata oluştu.');
+    }
+  }
+
+  /// Chat about a document — context-aware Q&A.
+  Future<String> chatAboutDocument({
+    required String extractedText,
+    required String question,
+    required List<Content> history,
+  }) async {
+    try {
+      // Build system context
+      final systemPrompt = '''
+Sen bir akademik asistansın. Kullanıcı sana bir belge yükledi ve bu belge hakkında sorular soruyor.
+Yanıtlarını yalnızca belge içeriğine dayandır. Belgede olmayan bilgiler hakkında "Bu bilgi belgede yer almıyor" de.
+Türkçe yanıt ver.
+
+BELGE İÇERİĞİ:
+$extractedText
+
+---
+Kullanıcının sorusu: $question
+''';
+
+      final chat = _model.startChat(history: history.take(history.length - 1).toList());
+      final response = await chat.sendMessage(Content.text(systemPrompt));
+      return response.text ?? 'Yanıt alınamadı.';
+    } catch (e) {
+      debugPrint('AI Document chat error: $e');
+      throw Exception('Yanıt oluşturulurken bir hata meydana geldi.');
+    }
+  }
 }
+

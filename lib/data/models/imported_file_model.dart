@@ -8,7 +8,7 @@ enum FileType {
   unknown,
 }
 
-/// Represents an imported file attached to a notebook.
+/// Represents an imported file attached to a folder or notebook.
 class ImportedFile extends Equatable {
   /// Unique identifier.
   final String id;
@@ -28,8 +28,11 @@ class ImportedFile extends Equatable {
   /// File type category.
   final FileType fileType;
 
-  /// Associated notebook ID.
-  final String notebookId;
+  /// Associated folder ID (for folder-based storage).
+  final String? folderId;
+
+  /// Associated notebook ID (legacy, for notebook-attached files).
+  final String? notebookId;
 
   /// Number of pages (for PDFs).
   final int? pageCount;
@@ -47,7 +50,8 @@ class ImportedFile extends Equatable {
     required this.mimeType,
     required this.fileSize,
     required this.fileType,
-    required this.notebookId,
+    this.folderId,
+    this.notebookId,
     this.pageCount,
     this.thumbnailPath,
     required this.createdAt,
@@ -72,6 +76,8 @@ class ImportedFile extends Equatable {
     String? localPath,
     String? thumbnailPath,
     int? pageCount,
+    String? folderId,
+    String? notebookId,
   }) {
     return ImportedFile(
       id: id,
@@ -80,7 +86,8 @@ class ImportedFile extends Equatable {
       mimeType: mimeType,
       fileSize: fileSize,
       fileType: fileType,
-      notebookId: notebookId,
+      folderId: folderId ?? this.folderId,
+      notebookId: notebookId ?? this.notebookId,
       pageCount: pageCount ?? this.pageCount,
       thumbnailPath: thumbnailPath ?? this.thumbnailPath,
       createdAt: createdAt,
@@ -94,6 +101,7 @@ class ImportedFile extends Equatable {
         'mimeType': mimeType,
         'fileSize': fileSize,
         'fileType': fileType.index,
+        'folderId': folderId,
         'notebookId': notebookId,
         'pageCount': pageCount,
         'thumbnailPath': thumbnailPath,
@@ -108,7 +116,8 @@ class ImportedFile extends Equatable {
       mimeType: json['mimeType'] as String? ?? 'application/octet-stream',
       fileSize: json['fileSize'] as int? ?? 0,
       fileType: FileType.values[json['fileType'] as int? ?? 3],
-      notebookId: json['notebookId'] as String,
+      folderId: json['folderId'] as String?,
+      notebookId: json['notebookId'] as String?,
       pageCount: json['pageCount'] as int?,
       thumbnailPath: json['thumbnailPath'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
@@ -118,6 +127,6 @@ class ImportedFile extends Equatable {
   @override
   List<Object?> get props => [
         id, fileName, localPath, mimeType, fileSize,
-        fileType, notebookId, pageCount, thumbnailPath, createdAt,
+        fileType, folderId, notebookId, pageCount, thumbnailPath, createdAt,
       ];
 }

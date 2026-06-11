@@ -220,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             AppColors.secondary,
                             AppColors.secondaryLight,
                           ],
-                          onTap: () {},
+                          onTap: () => context.push(AppRoutes.documentAnalysis),
                         ),
                         const SizedBox(width: AppSpacing.md),
                         _QuickActionCard(

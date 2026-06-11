@@ -19,6 +19,8 @@ class AppConstants {
   static const String strokesBox = 'strokes';
   static const String pagesBox = 'pages';
   static const String filesBox = 'files';
+  static const String aiResultsBox = 'ai_results';
+  static const String documentNotesBox = 'document_notes';
 
   // Canvas Defaults
   static const double defaultStrokeWidth = 2.0;

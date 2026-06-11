@@ -46,6 +46,8 @@ dependencies:
   share_plus: ^11.0.0
   mime: ^2.0.0
   image: ^4.5.3
+  syncfusion_flutter_pdf: ^29.1.38
+  syncfusion_flutter_pdfviewer: ^29.1.38
 
   # AI
   google_generative_ai: ^0.4.6

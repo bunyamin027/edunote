@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/config/app_constants.dart';
 import '../../core/config/injection.dart';
@@ -676,7 +677,13 @@ class _CanvasScreenState extends State<CanvasScreen>
 
     if (png != null) {
       _showSnackBar('✅ PNG başarıyla oluşturuldu (${(png.length / 1024).toStringAsFixed(0)} KB)');
-      // TODO: Share via share_plus or save to gallery
+      
+      final xFile = XFile.fromData(
+        png,
+        mimeType: 'image/png',
+        name: 'defter_sayfa_${_currentPageIndex + 1}.png',
+      );
+      await Share.shareXFiles([xFile], subject: 'Çizim Defteri');
     } else {
       _showSnackBar('❌ PNG oluşturulurken hata oluştu');
     }
@@ -705,7 +712,19 @@ class _CanvasScreenState extends State<CanvasScreen>
     );
 
     _showSnackBar('✅ ${pngs.length} sayfa başarıyla dışa aktarıldı');
-    // TODO: Share via share_plus
+    
+    final xFiles = <XFile>[];
+    for (int i = 0; i < pngs.length; i++) {
+      xFiles.add(
+        XFile.fromData(
+          pngs[i],
+          mimeType: 'image/png',
+          name: 'defter_sayfa_${i + 1}.png',
+        ),
+      );
+    }
+    
+    await Share.shareXFiles(xFiles, subject: 'Çizim Defteri (Tüm Sayfalar)');
   }
 
   Future<void> _exportPdf() async {

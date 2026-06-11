@@ -61,7 +61,7 @@ class FileImportService {
 
   // ─── File Import ────────────────────────────────────
 
-  /// Import a picked file into app storage and save metadata.
+  /// Import a picked file into app storage and save metadata (notebook-based).
   Future<ImportedFile?> importFile({
     required picker.PlatformFile pickedFile,
     required String notebookId,
@@ -109,6 +109,50 @@ class FileImportService {
     }
   }
 
+  /// Import a picked file into a folder.
+  Future<ImportedFile?> importFileToFolder({
+    required picker.PlatformFile pickedFile,
+    required String folderId,
+  }) async {
+    try {
+      if (pickedFile.path == null) return null;
+
+      final mimeType = lookupMimeType(pickedFile.name) ?? 'application/octet-stream';
+      final fileType = _categorizeFile(mimeType);
+
+      // Copy file to folder-specific app storage
+      final appDir = await getApplicationDocumentsDirectory();
+      final filesDir = Directory('${appDir.path}/edunote_folders/$folderId');
+      if (!await filesDir.exists()) {
+        await filesDir.create(recursive: true);
+      }
+
+      final fileId = _uuid.v4();
+      final extension = pickedFile.extension ?? 'bin';
+      final destPath = '${filesDir.path}/$fileId.$extension';
+
+      final sourceFile = File(pickedFile.path!);
+      await sourceFile.copy(destPath);
+
+      final importedFile = ImportedFile(
+        id: fileId,
+        fileName: pickedFile.name,
+        localPath: destPath,
+        mimeType: mimeType,
+        fileSize: pickedFile.size,
+        fileType: fileType,
+        folderId: folderId,
+        createdAt: DateTime.now(),
+      );
+
+      await _saveFileMetadata(importedFile);
+      return importedFile;
+    } catch (e) {
+      debugPrint('File import to folder error: $e');
+      return null;
+    }
+  }
+
   // ─── File Queries ───────────────────────────────────
 
   /// Get all imported files for a notebook.
@@ -118,6 +162,27 @@ class FileImportService {
         .whereType<Map>()
         .map((data) => ImportedFile.fromJson(Map<String, dynamic>.from(data)))
         .where((f) => f.notebookId == notebookId)
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  /// Get all imported files for a folder.
+  List<ImportedFile> getFilesForFolder(String folderId) {
+    final allData = _filesBox.values.toList();
+    return allData
+        .whereType<Map>()
+        .map((data) => ImportedFile.fromJson(Map<String, dynamic>.from(data)))
+        .where((f) => f.folderId == folderId)
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  /// Get all imported files (across all folders/notebooks).
+  List<ImportedFile> getAllFiles() {
+    final allData = _filesBox.values.toList();
+    return allData
+        .whereType<Map>()
+        .map((data) => ImportedFile.fromJson(Map<String, dynamic>.from(data)))
         .toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
@@ -153,6 +218,14 @@ class FileImportService {
   /// Delete all files for a notebook.
   Future<void> deleteFilesForNotebook(String notebookId) async {
     final files = getFilesForNotebook(notebookId);
+    for (final file in files) {
+      await deleteFile(file.id);
+    }
+  }
+
+  /// Delete all files for a folder.
+  Future<void> deleteFilesForFolder(String folderId) async {
+    final files = getFilesForFolder(folderId);
     for (final file in files) {
       await deleteFile(file.id);
     }

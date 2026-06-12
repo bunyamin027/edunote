@@ -593,7 +593,6 @@ class _FolderGridItem extends StatelessWidget {
           onTap: () => context.read<FolderExplorerBloc>().add(
                 NavigateToFolder(folderId: folder.id, folderName: folder.name),
               ),
-          onLongPress: () => _showFolderOptions(context),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
@@ -612,50 +611,66 @@ class _FolderGridItem extends StatelessWidget {
                 ),
               ],
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Stack(
               children: [
-                const Spacer(),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: isHovering ? 72 : 64,
-                  height: isHovering ? 72 : 64,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isHovering
-                          ? colors
-                          : colors.map((c) => c.withValues(alpha: 0.15)).toList(),
-                    ),
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                  ),
-                  child: Icon(
-                    isHovering ? Icons.folder_open_rounded : Icons.folder_rounded,
-                    color: isHovering ? Colors.white : colors.first,
-                    size: 36,
+                Positioned.fill(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Spacer(),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: isHovering ? 72 : 64,
+                        height: isHovering ? 72 : 64,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: isHovering
+                                ? colors
+                                : colors.map((c) => c.withValues(alpha: 0.15)).toList(),
+                          ),
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                        ),
+                        child: Icon(
+                          isHovering ? Icons.folder_open_rounded : Icons.folder_rounded,
+                          color: isHovering ? Colors.white : colors.first,
+                          size: 36,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                        child: Text(
+                          folder.name,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(
+                        _formatDate(folder.updatedAt),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
+                      const Spacer(),
+                    ],
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                  child: Text(
-                    folder.name,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: IconButton(
+                    icon: const Icon(Icons.more_vert, size: 20),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () => _showFolderOptions(context),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  _formatDate(folder.updatedAt),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontSize: 11,
-                  ),
-                ),
-                const Spacer(),
               ],
             ),
           ),
@@ -755,7 +770,6 @@ class _AiResultGridItem extends StatelessWidget {
       onTap: () {
         context.push(AppRoutes.aiResultViewer, extra: result);
       },
-      onLongPress: () => _showOptions(context),
       child: Container(
         decoration: BoxDecoration(
           color: isDark ? AppColors.surfaceDark : Colors.white,
@@ -768,46 +782,62 @@ class _AiResultGridItem extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
           children: [
-            const Spacer(),
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              ),
-              child: Center(
-                child: Text(
-                  result.typeEmoji,
-                  style: const TextStyle(fontSize: 28),
-                ),
+            Positioned.fill(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Spacer(),
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    ),
+                    child: Center(
+                      child: Text(
+                        result.typeEmoji,
+                        style: const TextStyle(fontSize: 28),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    child: Text(
+                      result.title,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    result.typeLabel,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
+                  ),
+                  const Spacer(),
+                ],
               ),
             ),
-            const SizedBox(height: AppSpacing.md),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: Text(
-                result.title,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
+            Positioned(
+              top: 4,
+              right: 4,
+              child: IconButton(
+                icon: const Icon(Icons.more_vert, size: 20),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => _showOptions(context),
               ),
             ),
-            const SizedBox(height: AppSpacing.xxs),
-            Text(
-              result.typeLabel,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontSize: 11,
-              ),
-            ),
-            const Spacer(),
           ],
         ),
       ),
@@ -895,7 +925,6 @@ class _NotebookGridItem extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => context.push(AppRoutes.canvasPath(notebook.id)),
-      onLongPress: () => _showNotebookOptions(context),
       child: Container(
         decoration: BoxDecoration(
           color: isDark ? AppColors.surfaceDark : Colors.white,
@@ -936,26 +965,39 @@ class _NotebookGridItem extends StatelessWidget {
             Expanded(
               flex: 2,
               child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                child: Row(
                   children: [
-                    Text(
-                      notebook.name,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            notebook.name,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: AppSpacing.xxs),
+                          Text(
+                            '${notebook.pageCount} sayfa',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: AppSpacing.xxs),
-                    Text(
-                      '${notebook.pageCount} sayfa',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontSize: 11,
-                      ),
+                    IconButton(
+                      icon: const Icon(Icons.more_vert, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => _showNotebookOptions(context),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ],
                 ),
@@ -1010,7 +1052,6 @@ class _FileGridItem extends StatelessWidget {
       onTap: () {
         context.push(AppRoutes.documentViewer, extra: file);
       },
-      onLongPress: () => _showFileOptions(context),
       child: Container(
         decoration: BoxDecoration(
           color: isDark ? AppColors.surfaceDark : Colors.white,
@@ -1023,41 +1064,57 @@ class _FileGridItem extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
           children: [
-            const Spacer(),
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: _getFileColor().withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            Positioned.fill(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Spacer(),
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: _getFileColor().withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    ),
+                    child: Icon(_getFileIcon(), color: _getFileColor(), size: 28),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    child: Text(
+                      file.fileName,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    file.formattedSize,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
+                  ),
+                  const Spacer(),
+                ],
               ),
-              child: Icon(_getFileIcon(), color: _getFileColor(), size: 28),
             ),
-            const SizedBox(height: AppSpacing.md),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: Text(
-                file.fileName,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
+            Positioned(
+              top: 4,
+              right: 4,
+              child: IconButton(
+                icon: const Icon(Icons.more_vert, size: 20),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => _showFileOptions(context),
               ),
             ),
-            const SizedBox(height: AppSpacing.xxs),
-            Text(
-              file.formattedSize,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontSize: 11,
-              ),
-            ),
-            const Spacer(),
           ],
         ),
       ),
@@ -1177,7 +1234,6 @@ class _FolderListItem extends StatelessWidget {
               onTap: () => context.read<FolderExplorerBloc>().add(
                     NavigateToFolder(folderId: folder.id, folderName: folder.name),
                   ),
-              onLongPress: () => _showFolderOptions(context),
               leading: Container(
                 width: 44,
                 height: 44,
@@ -1192,7 +1248,10 @@ class _FolderListItem extends StatelessWidget {
                 ),
               ),
               title: Text(folder.name, style: theme.textTheme.titleSmall),
-              trailing: const Icon(Icons.chevron_right_rounded),
+              trailing: IconButton(
+                icon: const Icon(Icons.more_vert),
+                onPressed: () => _showFolderOptions(context),
+              ),
             ),
           ),
         );
@@ -1282,7 +1341,6 @@ class _NotebookListItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: ListTile(
         onTap: () => context.push(AppRoutes.canvasPath(notebook.id)),
-        onLongPress: () => _showNotebookOptions(context),
         leading: Container(
           width: 44,
           height: 44,
@@ -1295,7 +1353,10 @@ class _NotebookListItem extends StatelessWidget {
         ),
         title: Text(notebook.name, style: theme.textTheme.titleSmall),
         subtitle: Text('${notebook.pageCount} sayfa'),
-        trailing: const Icon(Icons.chevron_right_rounded),
+        trailing: IconButton(
+          icon: const Icon(Icons.more_vert),
+          onPressed: () => _showNotebookOptions(context),
+        ),
       ),
     );
   }
@@ -1343,7 +1404,6 @@ class _FileListItem extends StatelessWidget {
         onTap: () {
           context.push(AppRoutes.documentViewer, extra: file);
         },
-        onLongPress: () => _showFileOptions(context),
         leading: Container(
           width: 44,
           height: 44,
@@ -1360,7 +1420,10 @@ class _FileListItem extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(file.formattedSize),
-        trailing: const Icon(Icons.chevron_right_rounded),
+        trailing: IconButton(
+          icon: const Icon(Icons.more_vert),
+          onPressed: () => _showFileOptions(context),
+        ),
       ),
     );
   }

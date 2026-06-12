@@ -212,7 +212,6 @@ class _NotebookGridItem extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      onLongPress: () => _showOptions(context),
       child: Container(
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
@@ -253,23 +252,36 @@ class _NotebookGridItem extends StatelessWidget {
             Expanded(
               flex: 2,
               child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                child: Row(
                   children: [
-                    Text(
-                      notebook.name,
-                      style: theme.textTheme.titleSmall,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      _formatDate(notebook.updatedAt),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            notebook.name,
+                            style: theme.textTheme.titleSmall,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            _formatDate(notebook.updatedAt),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.more_vert, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => _showOptions(context),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ],
                 ),
@@ -337,7 +349,6 @@ class _NotebookListItem extends StatelessWidget {
 
     return ListTile(
       onTap: onTap,
-      onLongPress: () => _showOptions(context),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.sm,
@@ -369,7 +380,10 @@ class _NotebookListItem extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: Text('${notebook.pageCount} sayfa'),
-      trailing: const Icon(Icons.chevron_right_rounded),
+      trailing: IconButton(
+        icon: const Icon(Icons.more_vert),
+        onPressed: () => _showOptions(context),
+      ),
     );
   }
 

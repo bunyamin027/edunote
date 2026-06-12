@@ -73,6 +73,23 @@ class AiResultModel extends Equatable {
     }
   }
 
+  AiResultModel copyWith({
+    String? folderId,
+    String? title,
+    String? content,
+  }) {
+    return AiResultModel(
+      id: id,
+      folderId: folderId ?? this.folderId,
+      sourceFileId: sourceFileId,
+      sourceFileName: sourceFileName,
+      type: type,
+      title: title ?? this.title,
+      content: content ?? this.content,
+      createdAt: createdAt,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'folderId': folderId,

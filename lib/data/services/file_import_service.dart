@@ -153,6 +153,48 @@ class FileImportService {
     }
   }
 
+  /// Import a picked file to root (no folder).
+  Future<ImportedFile?> importFileToRoot({
+    required picker.PlatformFile pickedFile,
+  }) async {
+    try {
+      if (pickedFile.path == null) return null;
+
+      final mimeType = lookupMimeType(pickedFile.name) ?? 'application/octet-stream';
+      final fileType = _categorizeFile(mimeType);
+
+      final appDir = await getApplicationDocumentsDirectory();
+      final filesDir = Directory('${appDir.path}/edunote_root_files');
+      if (!await filesDir.exists()) {
+        await filesDir.create(recursive: true);
+      }
+
+      final fileId = _uuid.v4();
+      final extension = pickedFile.extension ?? 'bin';
+      final destPath = '${filesDir.path}/$fileId.$extension';
+
+      final sourceFile = File(pickedFile.path!);
+      await sourceFile.copy(destPath);
+
+      final importedFile = ImportedFile(
+        id: fileId,
+        fileName: pickedFile.name,
+        localPath: destPath,
+        mimeType: mimeType,
+        fileSize: pickedFile.size,
+        fileType: fileType,
+        // folderId is null — root level
+        createdAt: DateTime.now(),
+      );
+
+      await _saveFileMetadata(importedFile);
+      return importedFile;
+    } catch (e) {
+      debugPrint('File import to root error: $e');
+      return null;
+    }
+  }
+
   // ─── File Queries ───────────────────────────────────
 
   /// Get all imported files for a notebook.
@@ -183,6 +225,17 @@ class FileImportService {
     return allData
         .whereType<Map>()
         .map((data) => ImportedFile.fromJson(Map<String, dynamic>.from(data)))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  /// Get files at root level (no folder).
+  List<ImportedFile> getRootFiles() {
+    final allData = _filesBox.values.toList();
+    return allData
+        .whereType<Map>()
+        .map((data) => ImportedFile.fromJson(Map<String, dynamic>.from(data)))
+        .where((f) => f.folderId == null && f.notebookId == null)
         .toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
@@ -232,6 +285,11 @@ class FileImportService {
   }
 
   // ─── Helpers ────────────────────────────────────────
+
+  /// Update file metadata (e.g. move to a different folder).
+  Future<void> updateFile(ImportedFile file) async {
+    await _saveFileMetadata(file);
+  }
 
   Future<void> _saveFileMetadata(ImportedFile file) async {
     await _filesBox.put(file.id, file.toJson());

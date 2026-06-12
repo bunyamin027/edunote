@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -6,14 +7,21 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
+import '../../core/config/injection.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../data/models/imported_file_model.dart';
+import '../../data/services/document_note_service.dart';
+import '../canvas/engine/canvas_painter.dart';
+import '../canvas/engine/drawing_engine.dart';
+import '../canvas/engine/input_handler.dart';
+import '../canvas/engine/stroke_style.dart';
+import '../canvas/widgets/drawing_toolbar.dart';
 import 'widgets/document_notes_panel.dart';
 
 /// Document Viewer — Opens and displays PDF, image, and text files.
-/// Provides read access with AI integration entry points.
+/// Supports annotation (drawing) overlay with full drawing tools.
 class DocumentViewerScreen extends StatefulWidget {
   final ImportedFile file;
 
@@ -29,13 +37,97 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   int _totalPages = 0;
   String? _textContent;
 
+  // Annotation state
+  late final DrawingEngine _engine;
+  late final InputHandler _inputHandler;
+  late final DocumentNoteService _noteService;
+  bool _annotationMode = false;
+  bool _isDrawing = false;
+  bool _isSaving = false;
+  Timer? _autoSaveTimer;
+
+  // For image/text annotation transform
+  final TransformationController _transformController =
+      TransformationController();
+
   @override
   void initState() {
     super.initState();
+
+    _engine = DrawingEngine();
+    _inputHandler = InputHandler();
+    _noteService = sl<DocumentNoteService>();
+
+    _engine.addListener(_onEngineChanged);
+
+    // Load text file if applicable
     if (widget.file.fileType == FileType.unknown &&
         widget.file.extension == 'txt') {
       _loadTextFile();
     }
+
+    // Load saved annotations for current page
+    _loadAnnotations();
+  }
+
+  @override
+  void dispose() {
+    _saveAnnotations();
+    _engine.removeListener(_onEngineChanged);
+    _engine.dispose();
+    _transformController.dispose();
+    _autoSaveTimer?.cancel();
+    _pdfController.dispose();
+    super.dispose();
+  }
+
+  // ─── Annotation Persistence ────────────────────────────
+
+  void _loadAnnotations() {
+    final strokesData = _noteService.loadAnnotations(
+      widget.file.id,
+      _currentPage,
+    );
+    _engine.clearCanvas();
+    if (strokesData.isNotEmpty) {
+      _engine.loadStrokes(strokesData);
+    }
+  }
+
+  Future<void> _saveAnnotations() async {
+    if (_isSaving) return;
+    _isSaving = true;
+    try {
+      final strokesData = _engine.exportStrokes();
+      await _noteService.saveAnnotations(
+        widget.file.id,
+        _currentPage,
+        strokesData,
+      );
+    } finally {
+      _isSaving = false;
+    }
+  }
+
+  void _onEngineChanged() {
+    setState(() {});
+    _scheduleAutoSave();
+  }
+
+  void _scheduleAutoSave() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(
+      const Duration(milliseconds: 2000),
+      _saveAnnotations,
+    );
+  }
+
+  void _onPdfPageChanged(int newPage) {
+    if (newPage == _currentPage) return;
+    // Save current page annotations before switching
+    _saveAnnotations();
+    setState(() => _currentPage = newPage);
+    _loadAnnotations();
   }
 
   Future<void> _loadTextFile() async {
@@ -47,11 +139,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _pdfController.dispose();
-    super.dispose();
-  }
+  // ─── Build ─────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +158,26 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
           overflow: TextOverflow.ellipsis,
         ),
         actions: [
+          // Annotation mode toggle
+          IconButton(
+            icon: Icon(
+              _annotationMode
+                  ? Icons.draw_rounded
+                  : Icons.draw_outlined,
+              color: _annotationMode ? AppColors.primary : null,
+            ),
+            tooltip: _annotationMode ? 'Çizimi Kapat' : 'Üzerine Çiz',
+            onPressed: () {
+              setState(() => _annotationMode = !_annotationMode);
+              if (_annotationMode) {
+                // Reset PDF zoom and scroll offset so annotations align
+                _pdfController.zoomLevel = 1.0;
+                _pdfController.jumpToPage(_currentPage);
+              } else {
+                _saveAnnotations();
+              }
+            },
+          ),
           // Notes button
           Builder(
             builder: (ctx) => IconButton(
@@ -82,7 +190,8 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
           IconButton(
             icon: const Icon(Icons.auto_awesome_rounded),
             tooltip: 'AI ile Analiz Et',
-            onPressed: () => context.push(AppRoutes.documentAnalysis, extra: widget.file),
+            onPressed: () =>
+                context.push(AppRoutes.documentAnalysis, extra: widget.file),
           ),
           // Share button
           IconButton(
@@ -110,19 +219,164 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
         ],
       ),
       endDrawer: const DocumentNotesPanel(),
-      body: _buildViewer(theme, isDark),
+      body: Column(
+        children: [
+          // Annotation mode indicator
+          if (_annotationMode)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.xs,
+              ),
+              color: AppColors.primary,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.draw_rounded, color: Colors.white, size: 14),
+                  SizedBox(width: AppSpacing.xs),
+                  Text(
+                    'Çizim Modu — Dosya üzerine çizim yapabilirsiniz',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // Main content area (viewer + annotation overlay)
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Document content
+                AbsorbPointer(
+                  absorbing: _annotationMode,
+                  child: _buildViewer(theme, isDark),
+                ),
+
+                // Annotation overlay
+                if (_annotationMode || _engine.strokeCount > 0)
+                  _buildAnnotationLayer(isDark),
+              ],
+            ),
+          ),
+          
+          // Drawing toolbar (bottom, only in annotation mode)
+          if (_annotationMode)
+            Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + AppSpacing.sm),
+              child: Center(
+                child: ListenableBuilder(
+                  listenable: _engine,
+                  builder: (context, _) => DrawingToolbar(
+                    engine: _engine,
+                    canUndo: _engine.canUndo,
+                    canRedo: _engine.canRedo,
+                    onUndoTap: _engine.undo,
+                    onRedoTap: _engine.redo,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
       // Page indicator for PDFs
-      bottomNavigationBar: widget.file.fileType == FileType.pdf && _totalPages > 1
-          ? _PdfPageBar(
-              currentPage: _currentPage,
-              totalPages: _totalPages,
-              onPageChanged: (page) {
-                _pdfController.jumpToPage(page);
-              },
-            )
-          : null,
+      bottomNavigationBar:
+          widget.file.fileType == FileType.pdf && _totalPages > 1
+              ? _PdfPageBar(
+                  currentPage: _currentPage,
+                  totalPages: _totalPages,
+                  onPageChanged: (page) {
+                    _pdfController.jumpToPage(page);
+                  },
+                )
+              : null,
     );
   }
+
+  // ─── Annotation Layer ──────────────────────────────────
+
+  Widget _buildAnnotationLayer(bool isDark) {
+    return IgnorePointer(
+      ignoring: !_annotationMode,
+      child: GestureDetector(
+        onPanDown: _annotationMode ? (_) {} : null,
+        child: Listener(
+          behavior: _annotationMode
+              ? HitTestBehavior.opaque
+              : HitTestBehavior.translucent,
+          onPointerDown: _annotationMode ? _onPointerDown : null,
+          onPointerMove: _annotationMode ? _onPointerMove : null,
+          onPointerUp: _annotationMode ? _onPointerUp : null,
+          onPointerCancel: _annotationMode ? _onPointerCancel : null,
+          child: RepaintBoundary(
+            child: CustomPaint(
+              painter: CanvasPainter(
+                strokes: _engine.strokes,
+                activeStroke: _engine.activeStroke,
+                backgroundColor: Colors.transparent,
+                paperPattern: PaperPattern.blank,
+              ),
+              size: Size.infinite,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Pointer Events ────────────────────────────────────
+
+  void _onPointerDown(PointerDownEvent event) {
+    if (!_inputHandler.shouldDraw(event)) return;
+
+    if (_inputHandler.isEraserEnd(event)) {
+      _engine.setToolType(ToolType.eraser);
+    }
+
+    _engine.startStroke(
+      event.localPosition.dx,
+      event.localPosition.dy,
+      pressure: _inputHandler.getPressure(event),
+      tilt: _inputHandler.getTilt(event),
+    );
+
+    setState(() => _isDrawing = true);
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    if (!_isDrawing) return;
+    if (!_inputHandler.shouldDraw(event)) return;
+
+    _engine.addPoint(
+      event.localPosition.dx,
+      event.localPosition.dy,
+      pressure: _inputHandler.getPressure(event),
+      tilt: _inputHandler.getTilt(event),
+    );
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    _inputHandler.shouldDraw(event);
+    if (_isDrawing) {
+      _engine.endStroke();
+      setState(() => _isDrawing = false);
+    }
+    _inputHandler.reset();
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    _inputHandler.shouldDraw(event);
+    _engine.cancelStroke();
+    setState(() => _isDrawing = false);
+    _inputHandler.reset();
+  }
+
+  // ─── Viewer Types ──────────────────────────────────────
 
   Widget _buildViewer(ThemeData theme, bool isDark) {
     switch (widget.file.fileType) {
@@ -138,8 +392,6 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     }
   }
 
-  // ─── PDF Viewer ────────────────────────────────────────
-
   Widget _buildPdfViewer(ThemeData theme) {
     final file = File(widget.file.localPath);
 
@@ -147,22 +399,60 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
       return _buildFileNotFound(theme);
     }
 
-    return SfPdfViewer.file(
-      file,
-      controller: _pdfController,
-      canShowScrollHead: true,
-      canShowPaginationDialog: true,
-      enableDoubleTapZooming: true,
-      onDocumentLoaded: (details) {
-        setState(() {
-          _totalPages = details.document.pages.count;
-        });
-      },
-      onPageChanged: (details) {
-        setState(() {
-          _currentPage = details.newPageNumber;
-        });
-      },
+    final fileSizeInMB = file.lengthSync() / (1024 * 1024);
+    debugPrint('[PDF] Loading file: ${widget.file.fileName}, Size: ${fileSizeInMB.toStringAsFixed(2)} MB');
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        SfPdfViewer.file(
+          file,
+          key: ValueKey(widget.file.id),
+          controller: _pdfController,
+          canShowScrollHead: true,
+          canShowPaginationDialog: true,
+          enableDoubleTapZooming: false,
+          onDocumentLoaded: (details) {
+            debugPrint('[PDF] Document loaded successfully. Pages: ${details.document.pages.count}');
+            setState(() {
+              _totalPages = details.document.pages.count;
+            });
+          },
+          onDocumentLoadFailed: (details) {
+            debugPrint('[PDF] Load Failed: ${details.error} - ${details.description}');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('PDF yüklenemedi: ${details.error}'),
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 10),
+                ),
+              );
+            }
+          },
+          onPageChanged: (details) {
+            _onPdfPageChanged(details.newPageNumber);
+          },
+        ),
+        if (_totalPages == 0) // Show a custom loading indicator while parsing
+          Container(
+            color: theme.scaffoldBackgroundColor,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Büyük dosya işleniyor...\nLütfen bekleyin (${fileSizeInMB.toStringAsFixed(1)} MB)',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -176,8 +466,11 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     }
 
     return InteractiveViewer(
+      transformationController: _transformController,
       minScale: 0.5,
       maxScale: 5.0,
+      panEnabled: !_annotationMode,
+      scaleEnabled: !_annotationMode,
       child: Center(
         child: Image.file(
           file,
@@ -199,6 +492,9 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.pagePaddingHorizontal),
+      physics: _annotationMode
+          ? const NeverScrollableScrollPhysics()
+          : null,
       child: SelectableText(
         _textContent!,
         style: theme.textTheme.bodyMedium?.copyWith(

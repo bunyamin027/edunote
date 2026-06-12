@@ -37,6 +37,11 @@ class AiResultService {
     return AiResultModel.fromJson(Map<String, dynamic>.from(data as Map));
   }
 
+  /// Update an AI result (e.g. move to different folder).
+  Future<void> updateResult(AiResultModel result) async {
+    await _box.put(result.id, result.toJson());
+  }
+
   /// Delete a result.
   Future<void> deleteResult(String id) async {
     await _box.delete(id);

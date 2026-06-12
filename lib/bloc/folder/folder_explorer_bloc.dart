@@ -47,6 +47,7 @@ class FolderExplorerBloc
     on<ImportFileToCurrentFolder>(_onImportFile);
     on<DeleteFile>(_onDeleteFile);
     on<ToggleViewMode>(_onToggleView);
+    on<MoveItemToFolder>(_onMoveItem);
   }
 
   String? get _currentFolderId {
@@ -69,10 +70,10 @@ class FolderExplorerBloc
       // Get notebooks in this folder
       final notebooks = _notebookRepo.getNotebooksByFolder(folderId);
 
-      // Get files and AI results in this folder (only if we have a specific folder)
+      // Get files in this folder (or root files if at root)
       final files = folderId != null
           ? _fileService.getFilesForFolder(folderId)
-          : <dynamic>[];
+          : _fileService.getRootFiles();
           
       final aiResults = folderId != null
           ? _aiResultService.getResultsForFolder(folderId)
@@ -217,6 +218,50 @@ class FolderExplorerBloc
     final currentState = state;
     if (currentState is FolderExplorerLoaded) {
       emit(currentState.copyWith(isGridView: _isGridView));
+    }
+  }
+
+  // ─── Move Item ─────────────────────────────────────
+
+  Future<void> _onMoveItem(
+      MoveItemToFolder event, Emitter<FolderExplorerState> emit) async {
+    try {
+      switch (event.itemType) {
+        case DraggableItemType.folder:
+          final folder = _folderRepo.getFolderById(event.itemId);
+          if (folder == null) return;
+          // Prevent moving a folder into itself
+          if (folder.id == event.targetFolderId) return;
+          final updated = folder.copyWith(parentId: event.targetFolderId);
+          await _folderRepo.updateFolder(updated);
+          break;
+
+        case DraggableItemType.notebook:
+          final notebook = _notebookRepo.getNotebookById(event.itemId);
+          if (notebook == null) return;
+          final updated = notebook.copyWith(folderId: event.targetFolderId);
+          await _notebookRepo.updateNotebook(updated);
+          break;
+
+        case DraggableItemType.file:
+          final file = _fileService.getFileById(event.itemId);
+          if (file == null) return;
+          final updated = file.copyWith(folderId: event.targetFolderId);
+          await _fileService.updateFile(updated);
+          break;
+
+        case DraggableItemType.aiResult:
+          final result = _aiResultService.getResultById(event.itemId);
+          if (result == null) return;
+          final updated = result.copyWith(folderId: event.targetFolderId);
+          await _aiResultService.updateResult(updated);
+          break;
+      }
+
+      // Reload current folder contents
+      add(LoadFolderContents(folderId: _currentFolderId));
+    } catch (e) {
+      debugPrint('Move item error: $e');
     }
   }
 }

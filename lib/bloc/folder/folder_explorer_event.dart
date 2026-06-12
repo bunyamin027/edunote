@@ -82,3 +82,22 @@ class DeleteFile extends FolderExplorerEvent {
 
 /// Toggle between grid and list view.
 class ToggleViewMode extends FolderExplorerEvent {}
+
+/// Type of draggable item for move operations.
+enum DraggableItemType { folder, notebook, file, aiResult }
+
+/// Move an item (folder, notebook, file, or AI result) to a target folder.
+class MoveItemToFolder extends FolderExplorerEvent {
+  final String itemId;
+  final String targetFolderId;
+  final DraggableItemType itemType;
+
+  const MoveItemToFolder({
+    required this.itemId,
+    required this.targetFolderId,
+    required this.itemType,
+  });
+
+  @override
+  List<Object?> get props => [itemId, targetFolderId, itemType];
+}

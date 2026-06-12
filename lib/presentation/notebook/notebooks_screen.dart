@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -281,21 +282,24 @@ class _NotebookGridItem extends StatelessWidget {
   }
 
   void _showOptions(BuildContext context) {
-    showModalBottomSheet(
+    showCupertinoModalPopup(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.delete_outline_rounded),
-              title: const Text('Sil'),
-              onTap: () {
-                Navigator.pop(context);
-                onDelete();
-              },
-            ),
-          ],
+      builder: (ctx) => CupertinoActionSheet(
+        title: Text(notebook.name),
+        actions: [
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              Navigator.pop(ctx);
+              onDelete();
+            },
+            child: const Text('Sil'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('İptal'),
         ),
       ),
     );
@@ -333,7 +337,7 @@ class _NotebookListItem extends StatelessWidget {
 
     return ListTile(
       onTap: onTap,
-      onLongPress: onDelete,
+      onLongPress: () => _showOptions(context),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
         vertical: AppSpacing.sm,
@@ -366,6 +370,30 @@ class _NotebookListItem extends StatelessWidget {
       ),
       subtitle: Text('${notebook.pageCount} sayfa'),
       trailing: const Icon(Icons.chevron_right_rounded),
+    );
+  }
+
+  void _showOptions(BuildContext context) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: Text(notebook.name),
+        actions: [
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              Navigator.pop(ctx);
+              onDelete();
+            },
+            child: const Text('Sil'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('İptal'),
+        ),
+      ),
     );
   }
 }

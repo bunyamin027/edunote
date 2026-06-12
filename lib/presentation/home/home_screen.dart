@@ -1,15 +1,19 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:file_picker/file_picker.dart' as picker;
 
 import '../../bloc/notebook/notebook_bloc.dart';
 import '../../bloc/notebook/notebook_event.dart';
 import '../../bloc/notebook/notebook_state.dart';
+import '../../core/config/injection.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../data/models/notebook_model.dart';
+import '../../data/services/file_import_service.dart';
 import '../notebook/create_notebook_sheet.dart';
 
 /// Home Screen — Shows recent notes, quick actions, and welcome hero.
@@ -220,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             AppColors.secondary,
                             AppColors.secondaryLight,
                           ],
-                          onTap: () => context.push(AppRoutes.documentAnalysis),
+                          onTap: () => _uploadAndOpenFile(context),
                         ),
                         const SizedBox(width: AppSpacing.md),
                         _QuickActionCard(
@@ -358,6 +362,71 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) => const CreateNotebookSheet(),
     );
   }
+
+  Future<void> _uploadAndOpenFile(BuildContext _) async {
+    try {
+      final result = await picker.FilePicker.platform.pickFiles(
+        type: picker.FileType.custom,
+        allowedExtensions: ['pdf', 'txt', 'png', 'jpg', 'jpeg', 'webp'],
+        allowMultiple: false,
+      );
+
+      if (result == null || result.files.isEmpty) return;
+      if (!mounted) return;
+
+      final pickedFile = result.files.first;
+      if (pickedFile.path == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Dosya yolu alınamadı. Dosya çok büyük veya erişilemez olabilir.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+      // Show loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${pickedFile.name} yükleniyor...'),
+          duration: const Duration(seconds: 10),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      // Import file to root (no folder)
+      final fileService = sl<FileImportService>();
+      final imported = await fileService.importFileToRoot(pickedFile: pickedFile);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      if (imported == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Dosya kaydedilemedi.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+
+      // Open the file in DocumentViewerScreen
+      context.push(AppRoutes.documentViewer, extra: imported);
+    } catch (e) {
+      debugPrint('Upload error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Hata: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
 }
 
 // ─── Quick Action Card ──────────────────────────────────
@@ -429,6 +498,7 @@ class _NotebookCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onLongPress: () => _showNotebookOptions(context),
       child: Container(
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
@@ -494,6 +564,30 @@ class _NotebookCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showNotebookOptions(BuildContext context) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: Text(notebook.name),
+        actions: [
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<NotebookBloc>().add(DeleteNotebook(notebook.id));
+            },
+            child: const Text('Sil'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('İptal'),
         ),
       ),
     );

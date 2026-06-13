@@ -15,7 +15,8 @@ import '../../data/services/ai_result_service.dart';
 import '../../data/services/document_note_service.dart';
 import '../../data/services/auth_service.dart';
 import '../../data/services/sync_service.dart';
-
+import '../../data/database/app_database.dart';
+import '../../data/repositories/annotation_repository.dart';
 /// Global service locator instance.
 final GetIt sl = GetIt.instance;
 
@@ -38,6 +39,10 @@ Future<void> initDependencies() async {
   sl.registerSingleton<Box>(aiResultsBox, instanceName: 'aiResultsBox');
   sl.registerSingleton<Box>(documentNotesBox, instanceName: 'documentNotesBox');
 
+  // ─── Database ─────────────────────────────────────
+  final db = AppDatabase();
+  sl.registerSingleton<AppDatabase>(db);
+
   // ─── Data Sources ─────────────────────────────────
   sl.registerLazySingleton<HiveNotebookDatasource>(
     () => HiveNotebookDatasource(sl(instanceName: 'notebooksBox')),
@@ -52,6 +57,9 @@ Future<void> initDependencies() async {
   );
   sl.registerLazySingleton<FolderRepository>(
     () => FolderRepositoryImpl(sl<HiveFolderDatasource>()),
+  );
+  sl.registerLazySingleton<AnnotationRepository>(
+    () => AnnotationRepository(sl<AppDatabase>()),
   );
 
   // ─── Services ───────────────────────────────────
@@ -68,7 +76,7 @@ Future<void> initDependencies() async {
     () => AiResultService(sl(instanceName: 'aiResultsBox')),
   );
   sl.registerLazySingleton<DocumentNoteService>(
-    () => DocumentNoteService(sl(instanceName: 'documentNotesBox')),
+    () => DocumentNoteService(sl(instanceName: 'documentNotesBox'), sl<AnnotationRepository>()),
   );
   sl.registerLazySingleton<AuthService>(
     () => AuthService(),

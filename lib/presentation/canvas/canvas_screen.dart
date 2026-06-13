@@ -18,6 +18,7 @@ import 'engine/stroke.dart';
 import 'engine/stroke_style.dart';
 import 'engine/text_element.dart';
 import 'widgets/drawing_toolbar.dart';
+import 'widgets/draggable_toolbar.dart';
 import 'widgets/export_sheet.dart';
 import 'widgets/page_navigator.dart';
 import 'widgets/text_layer_overlay.dart';
@@ -60,6 +61,8 @@ class _CanvasScreenState extends State<CanvasScreen>
   bool _showPageNav = false;
   bool _isDrawing = false;
   bool _isSaving = false;
+  
+  Axis _toolbarAxis = Axis.horizontal;
 
   // Auto-save timer
   Timer? _autoSaveTimer;
@@ -115,7 +118,7 @@ class _CanvasScreenState extends State<CanvasScreen>
     // Load strokes
     _engine.clearCanvas();
     if (page.strokesData.isNotEmpty) {
-      _engine.loadStrokes(page.strokesData);
+      _engine.loadStrokes(_currentPageIndex, page.strokesData);
     }
 
     // Load paper pattern
@@ -159,7 +162,7 @@ class _CanvasScreenState extends State<CanvasScreen>
 
     try {
       final page = _pages[_currentPageIndex].copyWith(
-        strokesData: _engine.exportStrokes(),
+        strokesData: _engine.exportStrokes(_currentPageIndex),
         textElementsData: _textElements.map((t) => t.toJson()).toList(),
         paperPatternIndex: _engine.paperPattern.index,
         updatedAt: DateTime.now(),
@@ -236,22 +239,24 @@ class _CanvasScreenState extends State<CanvasScreen>
               child: _buildTopBar(theme, isDark),
             ),
 
-          // Bottom toolbar
+          // Movable toolbar
           if (_showToolbar)
-            Positioned(
-              bottom: MediaQuery.of(context).padding.bottom + AppSpacing.sm,
-              left: 0,
-              right: _showPageNav ? 80 : 0,
-              child: Center(
-                child: ListenableBuilder(
-                  listenable: _engine,
-                  builder: (context, _) => DrawingToolbar(
-                    engine: _engine,
-                    canUndo: _engine.canUndo,
-                    canRedo: _engine.canRedo,
-                    onUndoTap: _engine.undo,
-                    onRedoTap: _engine.redo,
-                  ),
+            DraggableToolbar(
+              initialPosition: Offset(
+                MediaQuery.of(context).size.width / 2 - 180,
+                MediaQuery.of(context).size.height - MediaQuery.of(context).padding.bottom - 100,
+              ),
+              initialAxis: _toolbarAxis,
+              onAxisChanged: (axis) => setState(() => _toolbarAxis = axis),
+              child: ListenableBuilder(
+                listenable: _engine,
+                builder: (context, _) => DrawingToolbar(
+                  engine: _engine,
+                  canUndo: _engine.canUndo,
+                  canRedo: _engine.canRedo,
+                  onUndoTap: _engine.undo,
+                  onRedoTap: _engine.redo,
+                  axis: _toolbarAxis,
                 ),
               ),
             ),

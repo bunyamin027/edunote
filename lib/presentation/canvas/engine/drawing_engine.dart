@@ -8,6 +8,8 @@ import 'stroke.dart';
 import 'stroke_point.dart';
 import 'stroke_style.dart';
 import 'canvas_painter.dart';
+import 'lasso_tool.dart';
+import 'smart_shape_detector.dart';
 
 /// Core drawing engine that manages strokes, undo/redo, and state.
 ///
@@ -17,9 +19,24 @@ import 'canvas_painter.dart';
 class DrawingEngine extends ChangeNotifier {
   final _uuid = const Uuid();
 
-  /// All completed strokes on the canvas.
-  List<Stroke> _strokes = [];
-  List<Stroke> get strokes => List.unmodifiable(_strokes);
+  /// Strokes organized by page index.
+  final Map<int, List<Stroke>> _pageStrokes = {};
+  
+  /// Gets strokes for a specific page.
+  List<Stroke> getStrokesForPage(int pageIndex) {
+    return List.unmodifiable(_pageStrokes[pageIndex] ?? []);
+  }
+
+  /// All strokes on the current page.
+  List<Stroke> get strokes => getStrokesForPage(_currentPageIndex);
+
+  /// Current page being annotated.
+  int _currentPageIndex = 0;
+  int get currentPageIndex => _currentPageIndex;
+
+  /// Tool helpers
+  final LassoTool lassoTool = LassoTool();
+  final SmartShapeDetector shapeDetector = SmartShapeDetector();
 
   /// The stroke currently being drawn.
   Stroke? _activeStroke;
@@ -37,18 +54,33 @@ class DrawingEngine extends ChangeNotifier {
   PaperPattern get paperPattern => _paperPattern;
 
   /// Whether there are actions that can be undone.
-  bool get canUndo => _strokes.isNotEmpty;
+  bool get canUndo => (_pageStrokes[_currentPageIndex]?.isNotEmpty ?? false);
 
   /// Whether there are actions that can be redone.
   bool get canRedo => _undoStack.isNotEmpty;
 
-  /// Total number of strokes.
-  int get strokeCount => _strokes.length;
+  /// Total number of strokes on current page.
+  int get strokeCount => _pageStrokes[_currentPageIndex]?.length ?? 0;
+
+  // ─── Page Navigation ────────────────────────────────
+  
+  void switchPage(int pageIndex) {
+    if (_currentPageIndex == pageIndex) return;
+    
+    // Cancel any active drawing
+    cancelStroke();
+    _undoStack.clear(); // Clear undo stack on page switch
+    
+    _currentPageIndex = pageIndex;
+    notifyListeners();
+  }
 
   // ─── Drawing Lifecycle ──────────────────────────────
 
   /// Called when a pointer goes down (user starts drawing).
   void startStroke(double x, double y, {double pressure = 0.5, double tilt = 0.0}) {
+    if (_currentStyle.toolType == ToolType.pan) return;
+
     final point = StrokePoint(
       x: x,
       y: y,
@@ -62,6 +94,10 @@ class DrawingEngine extends ChangeNotifier {
       style: _currentStyle,
       points: [point],
     );
+
+    if (_currentStyle.toolType == ToolType.lasso) {
+      lassoTool.startSelection(point.offset);
+    }
 
     // Clear redo stack on new drawing action
     _undoStack.clear();
@@ -82,6 +118,11 @@ class DrawingEngine extends ChangeNotifier {
     );
 
     _activeStroke = _activeStroke!.addPoint(point);
+    
+    if (_currentStyle.toolType == ToolType.lasso) {
+      lassoTool.updateSelection(point.offset);
+    }
+    
     notifyListeners();
   }
 
@@ -89,13 +130,26 @@ class DrawingEngine extends ChangeNotifier {
   void endStroke() {
     if (_activeStroke == null) return;
 
+    _pageStrokes[_currentPageIndex] ??= [];
+
     // For eraser, remove intersecting strokes instead of adding
     if (_currentStyle.toolType == ToolType.eraser) {
       _eraseIntersectingStrokes(_activeStroke!);
+    } else if (_currentStyle.toolType == ToolType.lasso) {
+      lassoTool.endSelection(_pageStrokes[_currentPageIndex] ?? []);
+    } else if (_currentStyle.toolType == ToolType.smartShape) {
+      final shape = shapeDetector.detect(_activeStroke!.points);
+      final newPoints = shapeDetector.geometrize(_activeStroke!.points, shape);
+      final finalStroke = Stroke(
+        id: _activeStroke!.id,
+        style: _activeStroke!.style,
+        points: newPoints,
+      );
+      _pageStrokes[_currentPageIndex]!.add(finalStroke.simplify(tolerance: 1.5));
     } else {
       // Simplify the stroke to reduce point count for performance
       final simplified = _activeStroke!.simplify(tolerance: 1.5);
-      _strokes.add(simplified);
+      _pageStrokes[_currentPageIndex]!.add(simplified);
     }
 
     _activeStroke = null;
@@ -113,19 +167,22 @@ class DrawingEngine extends ChangeNotifier {
   /// Remove strokes that intersect with the eraser path.
   void _eraseIntersectingStrokes(Stroke eraserStroke) {
     if (eraserStroke.points.isEmpty) return;
+    
+    final currentStrokes = _pageStrokes[_currentPageIndex];
+    if (currentStrokes == null || currentStrokes.isEmpty) return;
 
     final eraserWidth = eraserStroke.style.width;
     final toRemove = <int>[];
 
-    for (int i = 0; i < _strokes.length; i++) {
-      if (_strokeIntersects(_strokes[i], eraserStroke, eraserWidth)) {
+    for (int i = 0; i < currentStrokes.length; i++) {
+      if (_strokeIntersects(currentStrokes[i], eraserStroke, eraserWidth)) {
         toRemove.add(i);
       }
     }
 
     // Remove intersecting strokes (in reverse to maintain indices)
     for (final index in toRemove.reversed) {
-      _strokes.removeAt(index);
+      currentStrokes.removeAt(index);
     }
   }
 
@@ -148,8 +205,11 @@ class DrawingEngine extends ChangeNotifier {
   /// Undo the last stroke.
   void undo() {
     if (!canUndo) return;
+    
+    final currentStrokes = _pageStrokes[_currentPageIndex];
+    if (currentStrokes == null || currentStrokes.isEmpty) return;
 
-    final removed = _strokes.removeLast();
+    final removed = currentStrokes.removeLast();
     _undoStack.add(removed);
 
     if (_undoStack.length > AppConstants.undoHistoryLimit) {
@@ -163,8 +223,9 @@ class DrawingEngine extends ChangeNotifier {
   void redo() {
     if (!canRedo) return;
 
+    _pageStrokes[_currentPageIndex] ??= [];
     final restored = _undoStack.removeLast();
-    _strokes.add(restored);
+    _pageStrokes[_currentPageIndex]!.add(restored);
 
     notifyListeners();
   }
@@ -200,6 +261,12 @@ class DrawingEngine extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Set the stroke opacity.
+  void setOpacity(double opacity) {
+    _currentStyle = _currentStyle.copyWith(opacity: opacity);
+    notifyListeners();
+  }
+
   /// Set the paper pattern.
   void setPaperPattern(PaperPattern pattern) {
     _paperPattern = pattern;
@@ -208,30 +275,32 @@ class DrawingEngine extends ChangeNotifier {
 
   // ─── Canvas Operations ──────────────────────────────
 
-  /// Clear all strokes from the canvas.
+  /// Clear all strokes from the current page.
   void clearCanvas() {
-    _strokes.clear();
+    _pageStrokes[_currentPageIndex]?.clear();
     _undoStack.clear();
     _activeStroke = null;
     notifyListeners();
   }
 
-  /// Load strokes from serialized data.
-  void loadStrokes(List<Map<String, dynamic>> data) {
-    _strokes = data.map((d) => Stroke.fromJson(d)).toList();
-    _undoStack.clear();
-    _activeStroke = null;
-    notifyListeners();
+  /// Load strokes from serialized data for a specific page.
+  void loadStrokes(int pageIndex, List<Map<String, dynamic>> data) {
+    _pageStrokes[pageIndex] = data.map((d) => Stroke.fromJson(d)).toList();
+    if (pageIndex == _currentPageIndex) {
+      _undoStack.clear();
+      _activeStroke = null;
+      notifyListeners();
+    }
   }
 
-  /// Export strokes as serializable data.
-  List<Map<String, dynamic>> exportStrokes() {
-    return _strokes.map((s) => s.toJson()).toList();
+  /// Export strokes as serializable data for a specific page.
+  List<Map<String, dynamic>> exportStrokes(int pageIndex) {
+    return _pageStrokes[pageIndex]?.map((s) => s.toJson()).toList() ?? [];
   }
 
   @override
   void dispose() {
-    _strokes.clear();
+    _pageStrokes.clear();
     _undoStack.clear();
     super.dispose();
   }

@@ -19,7 +19,7 @@ import '../../presentation/settings/settings_screen.dart';
 import '../../presentation/canvas/canvas_screen.dart';
 import '../../presentation/files/files_screen.dart';
 import '../../presentation/document/document_analysis_screen.dart';
-import '../../presentation/document/document_viewer_screen.dart';
+import '../../presentation/pdf/pdf_document_screen.dart';
 import '../../data/models/imported_file_model.dart';
 import '../../data/models/ai_result_model.dart';
 
@@ -182,10 +182,7 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.documentViewer,
       builder: (context, state) {
         final file = state.extra as ImportedFile;
-        return BlocProvider(
-          create: (_) => DocumentNoteCubit(sl<DocumentNoteService>(), file.id),
-          child: DocumentViewerScreen(file: file),
-        );
+        return PdfDocumentScreen(file: file);
       },
     ),
 

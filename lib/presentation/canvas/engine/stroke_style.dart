@@ -9,6 +9,9 @@ enum ToolType {
   brush,
   highlighter,
   eraser,
+  lasso,
+  smartShape,
+  pan,
 }
 
 /// Style configuration for a stroke.
@@ -67,6 +70,7 @@ class StrokeStyle extends Equatable {
   /// The blend mode for rendering this stroke.
   BlendMode get blendMode {
     if (toolType == ToolType.eraser) return BlendMode.clear;
+    if (toolType == ToolType.highlighter) return BlendMode.multiply;
     return BlendMode.srcOver;
   }
 
@@ -76,6 +80,9 @@ class StrokeStyle extends Equatable {
       case ToolType.pen:
       case ToolType.ballpoint:
       case ToolType.brush:
+      case ToolType.lasso:
+      case ToolType.smartShape:
+      case ToolType.pan:
         return StrokeCap.round;
       case ToolType.highlighter:
         return StrokeCap.square;

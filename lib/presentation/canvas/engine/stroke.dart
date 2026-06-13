@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:equatable/equatable.dart';
 
 import 'stroke_point.dart';
@@ -25,6 +26,63 @@ class Stroke extends Equatable {
 
   /// Whether this stroke is a single dot (tap without drag).
   bool get isDot => points.length == 1;
+
+  /// Axis-aligned bounding box for spatial queries.
+  Rect get boundingBox {
+    if (points.isEmpty) return Rect.zero;
+    
+    double left = double.infinity;
+    double top = double.infinity;
+    double right = double.negativeInfinity;
+    double bottom = double.negativeInfinity;
+    
+    final padding = style.width / 2;
+
+    for (final p in points) {
+      if (p.x < left) left = p.x;
+      if (p.x > right) right = p.x;
+      if (p.y < top) top = p.y;
+      if (p.y > bottom) bottom = p.y;
+    }
+
+    return Rect.fromLTRB(
+      left - padding, 
+      top - padding, 
+      right + padding, 
+      bottom + padding
+    );
+  }
+
+  /// Whether a point is inside this stroke's path (with padding).
+  bool containsPoint(Offset point) {
+    if (!boundingBox.contains(point)) return false;
+    
+    final threshold = style.width / 2 + 5.0; // 5px padding for easier selection
+    final thresholdSq = threshold * threshold;
+
+    for (final p in points) {
+      final dx = p.x - point.dx;
+      final dy = p.y - point.dy;
+      if (dx * dx + dy * dy <= thresholdSq) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Whether this stroke is fully contained within a lasso path.
+  bool isContainedIn(Path lassoPath) {
+    if (points.isEmpty) return false;
+    
+    // For performance, just check if all points are inside
+    // For large strokes, might want to step by N points
+    for (final p in points) {
+      if (!lassoPath.contains(p.offset)) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   /// Add a point to this stroke (returns new instance).
   Stroke addPoint(StrokePoint point) {

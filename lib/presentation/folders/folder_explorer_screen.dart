@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:file_picker/file_picker.dart' as picker;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -680,6 +679,7 @@ class _FolderGridItem extends StatelessWidget {
   }
 
   void _showFolderOptions(BuildContext context) {
+    final bloc = context.read<FolderExplorerBloc>();
     showCupertinoModalPopup(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
@@ -696,7 +696,7 @@ class _FolderGridItem extends StatelessWidget {
             isDestructiveAction: true,
             onPressed: () {
               Navigator.pop(ctx);
-              context.read<FolderExplorerBloc>().add(DeleteFolder(folder.id));
+              bloc.add(DeleteFolder(folder.id));
             },
             child: const Text('Sil'),
           ),
@@ -711,6 +711,7 @@ class _FolderGridItem extends StatelessWidget {
   }
 
   void _showRenameDialog(BuildContext context) {
+    final bloc = context.read<FolderExplorerBloc>();
     final controller = TextEditingController(text: folder.name);
     showDialog(
       context: context,
@@ -731,7 +732,7 @@ class _FolderGridItem extends StatelessWidget {
               final name = controller.text.trim();
               if (name.isNotEmpty) {
                 Navigator.pop(ctx);
-                context.read<FolderExplorerBloc>().add(
+                bloc.add(
                       RenameFolder(folderId: folder.id, newName: name),
                     );
               }
@@ -1010,6 +1011,8 @@ class _NotebookGridItem extends StatelessWidget {
   }
 
   void _showNotebookOptions(BuildContext context) {
+    final notebookBloc = context.read<NotebookBloc>();
+    final folderBloc = context.read<FolderExplorerBloc>();
     showCupertinoModalPopup(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
@@ -1019,9 +1022,9 @@ class _NotebookGridItem extends StatelessWidget {
             isDestructiveAction: true,
             onPressed: () {
               Navigator.pop(ctx);
-              context.read<NotebookBloc>().add(DeleteNotebook(notebook.id));
+              notebookBloc.add(DeleteNotebook(notebook.id));
               // Also reload folder contents so it disappears from UI
-              context.read<FolderExplorerBloc>().add(const LoadFolderContents());
+              folderBloc.add(const LoadFolderContents());
             },
             child: const Text('Sil'),
           ),
@@ -1122,6 +1125,7 @@ class _FileGridItem extends StatelessWidget {
   }
 
   void _showFileOptions(BuildContext context) {
+    final bloc = context.read<FolderExplorerBloc>();
     showCupertinoModalPopup(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
@@ -1138,7 +1142,7 @@ class _FileGridItem extends StatelessWidget {
             isDestructiveAction: true,
             onPressed: () {
               Navigator.pop(ctx);
-              context.read<FolderExplorerBloc>().add(DeleteFile(file.id));
+              bloc.add(DeleteFile(file.id));
             },
             child: const Text('Sil'),
           ),
@@ -1260,6 +1264,7 @@ class _FolderListItem extends StatelessWidget {
   }
 
   void _showFolderOptions(BuildContext context) {
+    final bloc = context.read<FolderExplorerBloc>();
     showCupertinoModalPopup(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
@@ -1276,7 +1281,7 @@ class _FolderListItem extends StatelessWidget {
             isDestructiveAction: true,
             onPressed: () {
               Navigator.pop(ctx);
-              context.read<FolderExplorerBloc>().add(DeleteFolder(folder.id));
+              bloc.add(DeleteFolder(folder.id));
             },
             child: const Text('Sil'),
           ),
@@ -1291,6 +1296,7 @@ class _FolderListItem extends StatelessWidget {
   }
 
   void _showRenameDialog(BuildContext context) {
+    final bloc = context.read<FolderExplorerBloc>();
     final controller = TextEditingController(text: folder.name);
     showDialog(
       context: context,
@@ -1311,7 +1317,7 @@ class _FolderListItem extends StatelessWidget {
               final name = controller.text.trim();
               if (name.isNotEmpty) {
                 Navigator.pop(ctx);
-                context.read<FolderExplorerBloc>().add(
+                bloc.add(
                       RenameFolder(folderId: folder.id, newName: name),
                     );
               }
@@ -1362,6 +1368,8 @@ class _NotebookListItem extends StatelessWidget {
   }
 
   void _showNotebookOptions(BuildContext context) {
+    final notebookBloc = context.read<NotebookBloc>();
+    final folderBloc = context.read<FolderExplorerBloc>();
     showCupertinoModalPopup(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
@@ -1371,8 +1379,8 @@ class _NotebookListItem extends StatelessWidget {
             isDestructiveAction: true,
             onPressed: () {
               Navigator.pop(ctx);
-              context.read<NotebookBloc>().add(DeleteNotebook(notebook.id));
-              context.read<FolderExplorerBloc>().add(const LoadFolderContents());
+              notebookBloc.add(DeleteNotebook(notebook.id));
+              folderBloc.add(const LoadFolderContents());
             },
             child: const Text('Sil'),
           ),
@@ -1455,6 +1463,7 @@ class _FileListItem extends StatelessWidget {
   }
 
   void _showFileOptions(BuildContext context) {
+    final bloc = context.read<FolderExplorerBloc>();
     showCupertinoModalPopup(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
@@ -1471,7 +1480,7 @@ class _FileListItem extends StatelessWidget {
             isDestructiveAction: true,
             onPressed: () {
               Navigator.pop(ctx);
-              context.read<FolderExplorerBloc>().add(DeleteFile(file.id));
+              bloc.add(DeleteFile(file.id));
             },
             child: const Text('Sil'),
           ),

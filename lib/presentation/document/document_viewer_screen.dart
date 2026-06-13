@@ -434,24 +434,6 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
             _onPdfPageChanged(details.newPageNumber);
           },
         ),
-        if (_totalPages == 0) // Show a custom loading indicator while parsing
-          Container(
-            color: theme.scaffoldBackgroundColor,
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Büyük dosya işleniyor...\nLütfen bekleyin (${fileSizeInMB.toStringAsFixed(1)} MB)',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            ),
-          ),
       ],
     );
   }
